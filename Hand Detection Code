@@ -1,0 +1,52 @@
+import cv2  # Library to Display the camera
+import mediapipe as mp  # Library to detect the hand
+
+cap = cv2.VideoCapture(0)  # open the laptop camera
+
+mpHands = mp.solutions.hands
+hands = mpHands.Hands()  # to detect any hand
+mpDraw = mp.solutions.drawing_utils  # Draw the lines on the hand
+tipIds = [4, 8, 12, 16, 20]  # Top fingers position
+
+while True:
+    success, img = cap.read()
+    img = cv2.flip(img, 1)  # Rotate the camera
+
+    imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # convertion from BGR to RGB
+
+    results = hands.process(imgRGB)  # Show the screen as RGB
+
+    lmList = []
+
+    if results.multi_hand_landmarks:
+        for handLms in results.multi_hand_landmarks:
+            for id, lm in enumerate(handLms.landmark):
+                h, w, c = img.shape
+                cx, cy = int(lm.x * w), int(lm.y * h)
+                lmList.append([id, cx, cy])
+                mpDraw.draw_landmarks(img, handLms, mpHands.HAND_CONNECTIONS)
+
+                if len(lmList) == 21:
+                    fingers = []
+
+                    if lmList[tipIds[0]][1] < lmList[tipIds[0] - 2][1]:
+                        fingers.append(1)
+                    else:
+                        fingers.append(0)
+
+                    for tip in range(1, 5):
+                        if lmList[tipIds[tip]][2] < lmList[tipIds[tip] - 2][2]:
+                            fingers.append(1)
+                        else:
+                            fingers.append(0)
+
+                    totalFingers = fingers.count(1)
+
+                    print(totalFingers)
+
+                    cv2.putText(img, f'{totalFingers}', (40, 80), cv2.FONT_HERSHEY_SIMPLEX,
+                                3, (0, 0, 255), 6)  # Size, shape, color and position of the numders
+
+    cv2.imshow('Hand Tracker', img)  # The title of screen
+    if cv2.waitKey(1) & 0xff == 27:  # pressing ESC to close the screen
+        break
